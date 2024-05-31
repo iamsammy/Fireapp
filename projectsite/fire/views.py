@@ -1,11 +1,15 @@
 from django.shortcuts import render
 from django.views.generic.list import ListView
-from fire.models import Locations, Incident, FireStation
+from fire.models import Locations, Incident, FireStation, Firefighters, FireTruck, WeatherConditions
 from django.db import connection
 from django.http import JsonResponse
 from django.db.models.functions import ExtractMonth
 from django.db.models import Count
 from datetime import datetime
+from .forms import CityFilterForm
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from fire.forms import LocationForm, IncidentForm, FireStationForm, FireFighterForm, FireTruckForm, WeatherConditionForm
+from django.urls import reverse_lazy
 
 class HomePageView(ListView):
     model = Locations
@@ -168,19 +172,179 @@ def multipleBarbySeverity(request):
     return JsonResponse(result)
 
 def map_station(request):
-     fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
+    fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
 
-     for fs in fireStations:
-         fs['latitude'] = float(fs['latitude'])
-         fs['longitude'] = float(fs['longitude'])
+    for fs in fireStations:
+        fs['latitude'] = float(fs['latitude'])
+        fs['longitude'] = float(fs['longitude'])
 
-     fireStations_list = list(fireStations)
+    fireStations_list = list(fireStations)
 
-     context = {
-         'fireStations': fireStations_list,
-     }
+    context = {
+        'fireStations': fireStations_list,
+    }
 
-     return render(request, 'map_station.html', context)
+    return render(request, 'map_station.html', context)
+
+def map_incident(request):
+    fireIncident = Incident.objects.select_related('location').values('location__name', 'location__latitude', 'location__longitude', 'location__city', 'severity_level', 'description')
+
+    for fs in fireIncident:
+        fs['location__latitude'] = float(fs['location__latitude'])
+        fs['location__longitude'] = float(fs['location__longitude'])
+
+    fireIncident_list = list(fireIncident)
+
+    form = CityFilterForm(request.GET or None)
+    
+    if form.is_valid():
+        selected_city = form.cleaned_data['city']
+        if selected_city != 'all':
+            fireIncident_list = [incident for incident in fireIncident_list if incident['location__city'] == selected_city]
 
 
+    context = {
+        'fireIncident': fireIncident_list,
+        'form': form,
+    }
+
+    return render(request, 'map_incident.html', context)
+
+class LocationList(ListView):
+    model = Locations
+    context_object_name = 'location'
+    template_name = 'loc_list.html'
+    paginate_by = 5
+
+class IncidentList(ListView):
+    model = Incident
+    context_object_name = 'incident'
+    template_name = 'incident_list.html'
+    paginate_by = 5
+
+class FireStationList(ListView):
+    model = FireStation
+    context_object_name = 'firestation'
+    template_name = 'firestation_list.html'
+    paginate_by = 5
+
+class FireFighterList(ListView):
+    model = Firefighters
+    context_object_name = 'firefighter'
+    template_name = 'firefighter_list.html'
+    paginate_by = 5
+
+class FireTruckList(ListView):
+    model = FireTruck
+    context_object_name = 'firetruck'
+    template_name = 'firetruck_list.html'
+    paginate_by = 5
+
+class WeatherConditionList(ListView):
+    model = WeatherConditions
+    context_object_name = 'weathercondition'
+    template_name = 'weathercondition_list.html'
+    paginate_by = 5
+
+class LocationCreateView(CreateView):
+    model = Locations
+    form_class = LocationForm
+    template_name = 'loc_add.html'
+    success_url = reverse_lazy('location')
+    
+class IncidentCreateView(CreateView):
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'incident_add.html'
+    success_url = reverse_lazy('incident')
+    
+class FireStationCreateView(CreateView):
+    model = FireStation
+    form_class = FireStationForm
+    template_name = 'firestation_add.html'
+    success_url = reverse_lazy('fire-station')
+    
+class FireFighterCreateView(CreateView):
+    model = Firefighters
+    form_class = FireFighterForm
+    template_name = 'firefighter_add.html'
+    success_url = reverse_lazy('fire-fighter')
+    
+class FireTruckCreateView(CreateView):
+    model = FireTruck
+    form_class = FireTruckForm
+    template_name = 'firetruck_add.html'
+    success_url = reverse_lazy('fire-truck')
+    
+class WeatherConditionCreateView(CreateView):
+    model = WeatherConditions
+    form_class = WeatherConditionForm
+    template_name = 'weathercondition_add.html'
+    success_url = reverse_lazy('weather-condition')
+    
+class LocationUpdateView(UpdateView):
+    model = Locations
+    form_class = LocationForm
+    template_name = 'loc_edit.html'
+    success_url = reverse_lazy('location')
+
+class IncidentUpdateView(UpdateView):
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'incident_edit.html'
+    success_url = reverse_lazy('incident')
+
+class FireStationUpdateView(UpdateView):
+    model = FireStation
+    form_class = FireStationForm
+    template_name = 'firestation_edit.html'
+    success_url = reverse_lazy('fire-station')
+
+class FireFighterUpdateView(UpdateView):
+    model = Firefighters
+    form_class = FireFighterForm
+    template_name = 'firefighter_edit.html'
+    success_url = reverse_lazy('fire-fighter')
+
+class FireTruckUpdateView(UpdateView):
+    model = FireTruck
+    form_class = FireTruckForm
+    template_name = 'firetruck_edit.html'
+    success_url = reverse_lazy('fire-truck')
+
+class WeatherConditionUpdateView(UpdateView):
+    model = WeatherConditions
+    form_class = WeatherConditionForm
+    template_name = 'weathercondition_edit.html'
+    success_url = reverse_lazy('weather-condition')
+
+class LocationDeleteView (DeleteView):
+    model = Locations
+    template_name = 'loc_del.html'
+    success_url = reverse_lazy('location')
+
+class IncidentDeleteView (DeleteView):
+    model = Incident
+    template_name = 'incident_del.html'
+    success_url = reverse_lazy('incident')
+
+class FireStationDeleteView (DeleteView):
+    model = FireStation
+    template_name = 'firestation_del.html'
+    success_url = reverse_lazy('fire-station')
+
+class FireFighterDeleteView (DeleteView):
+    model = Firefighters
+    template_name = 'firefighter_del.html'
+    success_url = reverse_lazy('fire-fighter')
+
+class FireTruckDeleteView (DeleteView):
+    model = FireTruck
+    template_name = 'firetruck_del.html'
+    success_url = reverse_lazy('fire-truck')
+
+class WeatherConditionDeleteView (DeleteView):
+    model = WeatherConditions
+    template_name = 'weathercondition_del.html'
+    success_url = reverse_lazy('weather-condition')
 
